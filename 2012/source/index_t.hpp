@@ -32,6 +32,9 @@ struct index_t
         : i(i_), j(j_)
     { }
 
+    bool valid() const
+    { return i != -1 && j != -1; }
+
     void assign(std::size_t const i_ = -1, std::size_t const j_ = -1)
     {
         i = i_;
@@ -75,19 +78,6 @@ struct index_t
 
     index_t operator-(char const c) const
     { return index_t(i - as_i(c), j - as_j(c)); }
-
-    index_t& operator*=(std::size_t const t)
-    {
-        i *= t;
-        j *= t;
-        return *this;
-    }
-
-    index_t operator*(std::size_t const t) const
-    { return index_t(i*t, j*t); }
-    inline friend index_t
-    operator*(std::size_t const t, index_t const & this_)
-    { return this_ * t; }
 
     std::size_t hash_value() const
     {
