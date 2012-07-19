@@ -13,6 +13,9 @@
 #include <fstream>
 #include <iostream>
 
+#include <boost/foreach.hpp>
+
+#include "bfs_max_score.hpp"
 #include "delta_t.hpp"
 #include "index_t.hpp"
 #include "state_t.hpp"
@@ -24,14 +27,13 @@ int main(int argc, char* argv[])
     using icfp2012::state_t;
 
     state_t state;
-    std::deque< char > path;
 
-    switch(argc) {
-    case 2: {
+    if(argc == 2) {
+        // Interactive
         {
             std::ifstream f(argv[1]);
             if(f.fail()) {
-                std::cout << "Error opening file " << argv[1] << std::endl;
+                std::cerr << "Error opening file " << argv[1] << std::endl;
                 return 1;
             }
             state.initialize(f);
@@ -42,10 +44,9 @@ int main(int argc, char* argv[])
         std::cout << "Waterproof: " << state.waterproof << std::endl;
         std::cout << "Growth: " << state.beard_growth_rate << std::endl;
         std::cout << "Razors: " << state.n_razors << std::endl;
-        std::cout << std::endl;
-
-        std::cout << state.trampoline_map << std::endl;
-        std::cout << state.target_map << std::endl;
+        std::cout << state.trampoline_map
+                  << state.target_map
+                  << std::endl;
 
         std::cout << state << std::endl;
 
@@ -127,7 +128,60 @@ int main(int argc, char* argv[])
         std::cout << "# of moves: " << state.n_turns << std::endl;
         std::cout << "Score: " << state.score() << std::endl;
     }
-    default:;
+    else {
+        enum strategy_e
+        {
+            strategy_e_bfs_max_score
+        } strategy;
+        if(argc > 2) {
+            std::ifstream f(argv[1]);
+            if(f.fail()) {
+                std::cerr << "Error opening file " << argv[1] << std::endl;
+                return 1;
+            }
+            std::string s(argv[2]);
+            if(s == "bfs_max_score") {
+                assert(argc == 3);
+                strategy = strategy_e_bfs_max_score;
+            }
+            else {
+                std::cerr << "Unknown strategy parameter \"" << s << '"' << std::endl;
+                return 1;
+            }
+            state.initialize(f);
+        }
+        else {
+            assert(argc == 1);
+            state.initialize(std::cin);
+            strategy = strategy_e_bfs_max_score;
+        }
+
+        std::cout << "Water: " << state.cells.size() - state.water_level << std::endl;
+        std::cout << "Flooding: " << state.flooding_rate << std::endl;
+        std::cout << "Waterproof: " << state.waterproof << std::endl;
+        std::cout << "Growth: " << state.beard_growth_rate << std::endl;
+        std::cout << "Razors: " << state.n_razors << std::endl;
+        std::cout << state.trampoline_map
+                  << state.target_map
+                  << std::endl;
+
+        std::cout << state << std::endl;
+
+        std::deque< char > path;
+        switch(strategy) {
+        case strategy_e_bfs_max_score:
+            icfp2012::bfs_max_score(delta_t(state), path);
+        }
+
+        BOOST_FOREACH( char const move, path ) {
+            std::cout << "Move: " << move << '\n' << std::endl;
+            state.move_robot_update_ip(move);
+            std::cout << state << std::endl;
+        }
+
+        std::cout << "# of Lambdas collected: " << state.n_lambdas_collected << std::endl;
+        std::cout << "# of moves: " << state.n_turns << std::endl;
+        std::cout << "Score: " << state.score() << std::endl;
     }
     return 0;
 }
