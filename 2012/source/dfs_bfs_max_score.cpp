@@ -1,5 +1,5 @@
 /*******************************************************************************
- * icfp/2012/source/bfs_max_score.cpp
+ * icfp/2012/source/dfs_bfs_max_score.cpp
  *
  * Copyright 2012, Aleka McAdams, Jeffrey Hellrung.
  * Distributed under the Boost Software License, Version 1.0.  (See accompanying
@@ -11,9 +11,12 @@
 
 #include <deque>
 
+#include <boost/foreach.hpp>
+
 #include "bfs.hpp"
-#include "bfs_max_score.hpp"
 #include "delta_t.hpp"
+#include "dfs_bfs_max_score.hpp"
+#include "state_t.hpp"
 #include "visited_state_t.hpp"
 #include "visitor_result_e.hpp"
 
@@ -30,6 +33,8 @@ struct visitor_t
     std::deque< char >& path;
     std::size_t n_visited_states;
     std::size_t const max_visited_states;
+    int max_score0;
+    int max_score;
     visited_state_type const * visited_with_max_score;
 
     visitor_t(
@@ -38,6 +43,8 @@ struct visitor_t
         : path(path_),
           n_visited_states(0),
           max_visited_states(max_visited_states_),
+          max_score0(1),
+          max_score(0),
           visited_with_max_score(0)
     { }
 
@@ -45,9 +52,30 @@ struct visitor_t
 
     result_type operator()(visited_state_type& visited)
     {
-        if(!visited_with_max_score
-        || visited.state.score() > visited_with_max_score->state.score())
-            visited_with_max_score = &visited;
+        int const score0 = visited.state.score();
+        if(score0 >= max_score0) {
+            max_score0 = score0;
+            std::deque< char > path1;
+            int score;
+            if(visited.state.cell_map.size() < visited.state.base.n_cells/64) {
+                delta_t state1(visited.state);
+                dfs_bfs_max_score(state1, path1, max_visited_states);
+                BOOST_FOREACH( char const move, path1 )
+                    state1 = state1.move_robot_update(move);
+                score = state1.score();
+            }
+            else {
+                state_t state1 = visited.state.apply();
+                dfs_bfs_max_score(delta_t(state1), path1, max_visited_states);
+                state1.move_robot_update_ip(path1);
+                score = state1.score();
+            }
+            if(!visited_with_max_score || score > max_score) {
+                max_score = score;
+                visited_with_max_score = &visited;
+                path.swap(path1);
+            }
+        }
         if(++n_visited_states < max_visited_states
         && visited.state.robot_index != visited.state.base.lift_index)
             return visitor_result_e_continue;
@@ -63,11 +91,10 @@ struct visitor_t
 
 } // namespace
 
-void bfs_max_score(
+void dfs_bfs_max_score(
     delta_t const & start,
     std::deque< char >& path,
-    std::size_t const max_visited_states /*=
-        std::numeric_limits< std::size_t >::max()*/)
+    std::size_t const max_visited_states)
 { bfs(start, visitor_t(path, max_visited_states)); }
 
 } // namespace icfp2012

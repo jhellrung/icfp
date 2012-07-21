@@ -16,6 +16,8 @@
 #include <iosfwd>
 #include <vector>
 
+#include <boost/foreach.hpp>
+
 #include "index_t.hpp"
 #include "move_is_valid.hpp"
 
@@ -25,6 +27,7 @@ namespace icfp2012
 struct state_t
 {
     std::vector< std::vector< char > > cells;
+    std::size_t n_cells;
 
     index_t robot_index;
     index_t lift_index;
@@ -77,6 +80,7 @@ struct state_t
     void simplify_ip();
 
     void move_robot_update_ip(char const move);
+    void move_robot_update_ip(std::deque< char > const & moves);
 };
 
 std::ostream& operator<<(std::ostream& o, state_t const & this_);
@@ -120,6 +124,14 @@ inline bool
 state_t::
 move_is_valid(char const move) const
 { return icfp2012::move_is_valid(*this, move); }
+
+inline void
+state_t::
+move_robot_update_ip(std::deque< char > const & moves)
+{
+    BOOST_FOREACH( char const move, moves )
+        move_robot_update_ip(move);
+}
 
 /*******************************************************************************
  ******************************************************************************/

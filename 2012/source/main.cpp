@@ -7,16 +7,19 @@
  ******************************************************************************/
 
 #include <cassert>
+#include <cstddef>
 #include <cstdlib>
 
 #include <deque>
 #include <fstream>
 #include <iostream>
+#include <limits>
 
 #include <boost/foreach.hpp>
 
 #include "bfs_max_score.hpp"
 #include "delta_t.hpp"
+#include "dfs_bfs_max_score.hpp"
 #include "index_t.hpp"
 #include "state_t.hpp"
 
@@ -131,8 +134,11 @@ int main(int argc, char* argv[])
     else {
         enum strategy_e
         {
-            strategy_e_bfs_max_score
+            strategy_e_bfs_max_score,
+            strategy_e_dfs_bfs_max_score
         } strategy;
+        std::size_t max_visited_states =
+            std::numeric_limits< std::size_t >::max();
         if(argc > 2) {
             std::ifstream f(argv[1]);
             if(f.fail()) {
@@ -141,8 +147,17 @@ int main(int argc, char* argv[])
             }
             std::string s(argv[2]);
             if(s == "bfs_max_score") {
-                assert(argc == 3);
+                assert(argc == 3 || argc == 4);
                 strategy = strategy_e_bfs_max_score;
+                if(argc == 4)
+                    max_visited_states =
+                        static_cast< std::size_t >(std::atoi(argv[3]));
+            }
+            else if(s == "dfs_bfs_max_score") {
+                assert(argc == 4);
+                strategy = strategy_e_dfs_bfs_max_score;
+                max_visited_states =
+                        static_cast< std::size_t >(std::atoi(argv[3]));
             }
             else {
                 std::cerr << "Unknown strategy parameter \"" << s << '"' << std::endl;
@@ -170,7 +185,11 @@ int main(int argc, char* argv[])
         std::deque< char > path;
         switch(strategy) {
         case strategy_e_bfs_max_score:
-            icfp2012::bfs_max_score(delta_t(state), path);
+            icfp2012::bfs_max_score(delta_t(state), path, max_visited_states);
+            break;
+        case strategy_e_dfs_bfs_max_score:
+            icfp2012::dfs_bfs_max_score(delta_t(state), path, max_visited_states);
+            break;
         }
 
         BOOST_FOREACH( char const move, path ) {

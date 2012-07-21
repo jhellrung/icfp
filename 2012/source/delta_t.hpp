@@ -60,6 +60,8 @@ public:
 
     delta_t move_robot_update(char const move) const;
 
+    state_t apply() const;
+
     bool partial_equal(delta_t const & other) const;
     bool partial_less(delta_t const & other) const;
 

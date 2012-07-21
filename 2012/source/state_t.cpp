@@ -45,6 +45,8 @@ void
 state_t::
 initialize(std::istream& is)
 {
+    n_cells = 0;
+
     n_turns = 0;
     n_lambdas_remaining = 0;
     n_lambdas_collected = 0;
@@ -60,6 +62,7 @@ initialize(std::istream& is)
     std::string s;
 
     while(std::getline(is, s).good() && !s.empty()) {
+        n_cells += s.size();
         cells.push_back(std::vector< char >());
         cells.back().reserve(s.size());
         cells.back().insert(cells.back().end(), s.begin(), s.end());
@@ -148,7 +151,7 @@ initialize(std::istream& is)
 }
 
 /*******************************************************************************
- * state_t::simplify() -> void
+ * state_t::simplify_ip() -> void
  ******************************************************************************/
 
 void
@@ -210,6 +213,8 @@ simplify_ip()
                     continue;
                 earth_mask[j] = true;
             }
+            if(is_unmovable(cells[i][j-1]) || is_unmovable(cells[i][j+1]))
+                continue;
             b = true;
             for(std::size_t k = j; k != 0;) {
                 --k;
@@ -290,7 +295,10 @@ move_robot_update_ip(char const move)
             BOOST_FOREACH(
                 index_t const trampoline_index,
                 target_map[operator[](dest_index)] ) {
-                operator[](trampoline_index) = ' ';
+                char& trampoline_cell = operator[](trampoline_index);
+                if(!('A' <= trampoline_cell && trampoline_cell <= 'I'))
+                    continue;
+                trampoline_cell = ' ';
                 new_empty_indices.push_back(trampoline_index);
             }
         CASE_COMMON:

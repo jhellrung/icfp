@@ -245,4 +245,55 @@ move_robot_update(char const move) const
     return result;
 }
 
+/*******************************************************************************
+ * delta_t::apply() -> state_t
+ ******************************************************************************/
+
+state_t
+delta_t::
+apply() const
+{
+    state_t result;
+
+    result.cells = base.cells;
+    result.n_cells = base.n_cells;
+    typedef std::pair< index_t, char > index_cell_type;
+    BOOST_FOREACH( index_cell_type const index_cell, cell_map )
+        result[index_cell.first] = index_cell.second;
+
+    result.robot_index = robot_index;
+    result.lift_index = base.lift_index;
+    result.active_indices = active_indices;
+
+    result.n_turns = n_turns;
+    result.n_lambdas_remaining = n_lambdas_remaining;
+    result.n_lambdas_collected =
+        base.n_lambdas_collected
+      + (base.n_lambdas_remaining - n_lambdas_remaining);
+    result.robot_is_destroyed = robot_is_destroyed;
+
+    result.water_level = water_level();
+    result.flooding_rate = base.flooding_rate;
+    result.waterproof = base.waterproof;
+    result.n_turns_underwater = n_turns_underwater;
+
+    result.beard_growth_rate = base.beard_growth_rate;
+    result.n_razors = n_razors;
+
+    result.trampoline_map = base.trampoline_map;
+    for(std::size_t i = 0; i != 8; ++i) {
+        result.target_map.trampolines[i].reserve(
+            base.target_map.trampolines[i].size());
+        BOOST_FOREACH(
+            index_t const trampoline_index,
+            base.target_map.trampolines[i] ) {
+            char const trampoline_cell = result[trampoline_index];
+            if('A' <= trampoline_cell && trampoline_cell <= 'I')
+                result.target_map.trampolines[i].push_back(trampoline_cell);
+        }
+    }
+
+    return result;
+}
+
 } // namespace icfp2012
