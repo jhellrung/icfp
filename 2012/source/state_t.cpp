@@ -174,20 +174,21 @@ simplify_ip()
             if(!is_unmovable(cellD))
                 continue;
             assert(0 < j && j < cells[i].size() - 1);
-            if(cellD == '+') {
-                if((is_unmovable(cells[i][j-1]) || is_unmovable(cells[i+1][j-1]))
-                && (is_unmovable(cells[i][j+1]) || is_unmovable(cells[i+1][j+1])))
-                    cell = '+';
-            }
-            else if(is_unmovable(cells[i][j-1]))
+            char const cellL = cells[i][j-1];
+            char const cellDL = cells[i+1][j-1];
+            char const cellR = cells[i][j+1];
+            char const cellDR = cells[i+1][j+1];
+            if((cellD != '+'
+             || ((is_unmovable(cellL) || is_unmovable(cellDL))
+              && (is_unmovable(cellR) || is_unmovable(cellDR))))
+            && (is_unmovable(cellL)
+             || is_unmovable(cellR)
+             || ((cellR == '*' || cellR == '@')
+              && is_unmovable(cellDR)
+              && (cellDR != '+'
+               || is_unmovable(cells[i][j+2])
+               || is_unmovable(cells[i+1][j+2])))))
                 cell = '+';
-            else {
-                char const cellR = cells[i][j+1];
-                if(is_unmovable(cellR))
-                    cell = '+';
-                else if((cellR == '*' || cellR == '@') && is_unmovable(cells[i+1][j+1]))
-                    cell = '+';
-            }
         }
     }
 

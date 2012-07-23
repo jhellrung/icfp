@@ -9,7 +9,9 @@
 #include <cassert>
 #include <cstddef>
 
+#include <algorithm>
 #include <deque>
+#include <vector>
 
 #include <boost/foreach.hpp>
 
@@ -31,60 +33,96 @@ struct visitor_t
     typedef visited_state_t<> visited_state_type;
 
     std::deque< char >& path;
-    std::size_t n_visited_states;
     std::size_t const max_visited_states;
-    int max_score0;
-    int max_score;
-    visited_state_type const * visited_with_max_score;
+    std::size_t const max_branches;
+
+    int base_score;
+    std::size_t n_visited_states;
+    std::vector< visited_state_type const * > visited_with_max_scores;
 
     visitor_t(
         std::deque< char >& path_,
-        std::size_t const max_visited_states_)
+        std::size_t const max_visited_states_,
+        std::size_t const max_branches_)
         : path(path_),
-          n_visited_states(0),
           max_visited_states(max_visited_states_),
-          max_score0(1),
-          max_score(0),
-          visited_with_max_score(0)
-    { }
+          max_branches(max_branches_),
+          n_visited_states(0)
+    { visited_with_max_scores.reserve(max_branches); }
+
+private:
+    struct compare_visited_scores
+    {
+        typedef bool result_type;
+        bool operator()(
+            visited_state_type const * p0,
+            visited_state_type const * p1) const
+        { return p1->state.score() < p0->state.score(); }
+    };
+public:
 
     typedef visitor_result_e result_type;
 
     result_type operator()(visited_state_type& visited)
     {
-        int const score0 = visited.state.score();
-        if(score0 >= max_score0) {
-            max_score0 = score0;
-            std::deque< char > path1;
-            int score;
-            if(visited.state.cell_map.size() < visited.state.base.n_cells/64) {
-                delta_t state1(visited.state);
-                dfs_bfs_max_score(state1, path1, max_visited_states);
-                BOOST_FOREACH( char const move, path1 )
-                    state1 = state1.move_robot_update(move);
-                score = state1.score();
-            }
-            else {
-                state_t state1 = visited.state.apply();
-                dfs_bfs_max_score(delta_t(state1), path1, max_visited_states);
-                state1.move_robot_update_ip(path1);
-                score = state1.score();
-            }
-            if(!visited_with_max_score || score > max_score) {
-                max_score = score;
-                visited_with_max_score = &visited;
-                path.swap(path1);
-            }
+        int score = visited.state.score();
+
+        if(!visited.parent) {
+            base_score = score;
+            return visitor_result_e_continue;
         }
+
+        if(score > base_score
+        && (visited_with_max_scores.size() < max_branches
+         || score > visited_with_max_scores.back()->state.score())) {
+            if(visited_with_max_scores.size() < max_branches)
+                visited_with_max_scores.push_back(&visited);
+            else
+                visited_with_max_scores.back() = &visited;
+            std::inplace_merge(
+                visited_with_max_scores.begin(),
+                visited_with_max_scores.end() - 1,
+                visited_with_max_scores.end(),
+                compare_visited_scores()
+            );
+        }
+
         if(++n_visited_states < max_visited_states
         && visited.state.robot_index != visited.state.base.lift_index)
             return visitor_result_e_continue;
-        visited_state_type const * p = visited_with_max_score;
-        while(p->parent) {
-            assert(p->move);
-            path.push_front(p->move);
-            p = p->parent;
+
+        if(!visited_with_max_scores.empty()) {
+            int max_score = 0;
+            visited_state_type const * p = 0;
+            BOOST_FOREACH(
+                visited_state_type const * q,
+                visited_with_max_scores ) {
+                std::deque< char > path1;
+                if(q->state.robot_index == q->state.base.lift_index) {
+                    score = q->state.score();
+                }
+                else {
+                    state_t state1 = q->state.apply();
+                    state1.simplify_ip();
+                    dfs_bfs_max_score(
+                        delta_t(state1), path1,
+                        max_visited_states, max_branches);
+                    state1.move_robot_update_ip(path1);
+                    score = state1.score();
+                }
+                if(score > max_score) {
+                    max_score = score;
+                    p = q;
+                    path.swap(path1);
+                }
+            }
+            assert(p);
+            do {
+                assert(p->move);
+                path.push_front(p->move);
+            } while((p = p->parent)->parent);
         }
+
         return visitor_result_e_return;
     }
 };
@@ -94,7 +132,8 @@ struct visitor_t
 void dfs_bfs_max_score(
     delta_t const & start,
     std::deque< char >& path,
-    std::size_t const max_visited_states)
-{ bfs(start, visitor_t(path, max_visited_states)); }
+    std::size_t const max_visited_states,
+    std::size_t const max_branches)
+{ bfs(start, visitor_t(path, max_visited_states, max_branches)); }
 
 } // namespace icfp2012

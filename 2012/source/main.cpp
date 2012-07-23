@@ -137,8 +137,9 @@ int main(int argc, char* argv[])
             strategy_e_bfs_max_score,
             strategy_e_dfs_bfs_max_score
         } strategy;
-        std::size_t max_visited_states =
-            std::numeric_limits< std::size_t >::max();
+        std::size_t const size_t_max = std::numeric_limits< std::size_t >::max();
+        std::size_t max_visited_states = size_t_max;
+        std::size_t max_branches = size_t_max;
         if(argc > 2) {
             std::ifstream f(argv[1]);
             if(f.fail()) {
@@ -150,14 +151,14 @@ int main(int argc, char* argv[])
                 assert(argc == 3 || argc == 4);
                 strategy = strategy_e_bfs_max_score;
                 if(argc == 4)
-                    max_visited_states =
-                        static_cast< std::size_t >(std::atoi(argv[3]));
+                    max_visited_states = static_cast< std::size_t >(std::atoi(argv[3]));
             }
             else if(s == "dfs_bfs_max_score") {
-                assert(argc == 4);
+                assert(argc == 4 || argc == 5);
                 strategy = strategy_e_dfs_bfs_max_score;
-                max_visited_states =
-                        static_cast< std::size_t >(std::atoi(argv[3]));
+                max_visited_states = static_cast< std::size_t >(std::atoi(argv[3]));
+                if(argc == 5)
+                    max_branches = static_cast< std::size_t >(std::atoi(argv[4]));
             }
             else {
                 std::cerr << "Unknown strategy parameter \"" << s << '"' << std::endl;
@@ -188,7 +189,7 @@ int main(int argc, char* argv[])
             icfp2012::bfs_max_score(delta_t(state), path, max_visited_states);
             break;
         case strategy_e_dfs_bfs_max_score:
-            icfp2012::dfs_bfs_max_score(delta_t(state), path, max_visited_states);
+            icfp2012::dfs_bfs_max_score(delta_t(state), path, max_visited_states, max_branches);
             break;
         }
 

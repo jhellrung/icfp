@@ -21,7 +21,8 @@ namespace icfp2012
 void dfs_bfs_max_score(
     delta_t const & start,
     std::deque< char >& path,
-    std::size_t const max_visited_states);
+    std::size_t const max_visited_states,
+    std::size_t const max_branches);
 
 } // namespace icfp2012
 
